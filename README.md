@@ -38,7 +38,7 @@
 
 1.  Клонируйте репозиторий:
     ```bash
-    git clone <ссылка на ваш репозиторий>
+    git clone <https://github.com/rakhmankh/forte-ai-security-hub>
     cd forte_hackathon
     ```
 2.  Запустите контейнер:
