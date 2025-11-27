@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forte AI Security Hub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary: #9D1F46;
+            --primary-dark: #721230;
+            --bg-light: #F3F4F6;
+            --white: #FFFFFF;
+            --text-dark: #111827;
+            --text-gray: #6B7280;
+            --danger: #EF4444;
+            --success: #10B981;
+            --warning: #F59E0B;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            color: var(--text-dark);
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 260px;
+            background-color: var(--white);
+            border-right: 1px solid #E5E7EB;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.02);
+        }
+
+        .brand {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-gray);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            background-color: #FFF1F2;
+            color: var(--primary);
+        }
+
+        .nav-item.active {
+            background-color: var(--primary);
+            color: var(--white);
+            box-shadow: 0 4px 6px rgba(157, 31, 70, 0.2);
+        }
+
+        /* --- Main Content --- */
+        .main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .header { margin-bottom: 30px; }
+        .header h2 { margin: 0; font-size: 28px; }
+        .header p { margin: 5px 0 0; color: var(--text-gray); }
+
+        .content-section { display: none; animation: fadeIn 0.3s ease; }
+        .content-section.active { display: block; }
+
+        .card {
+            background: var(--white);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+            border: 1px solid #F3F4F6;
+        }
+
+        /* --- Stats Grid --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            border-left: 5px solid var(--primary);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-val { font-size: 26px; font-weight: 800; margin: 10px 0; color: #111; }
+        .stat-label { color: var(--text-gray); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+
+        /* --- Scanner --- */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        input, select {
+            width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; margin-top: 5px; box-sizing: border-box; font-family: inherit;
+        }
+        .btn {
+            background-color: var(--primary); color: white; padding: 14px 24px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn:hover { background-color: var(--primary-dark); box-shadow: 0 4px 12px rgba(157, 31, 70, 0.3); }
+        .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+        .btn-outline:hover { background: #FFF1F2; }
+
+        /* --- Result Box --- */
+        .result-box { margin-top: 25px; padding: 25px; border-radius: 12px; display: none; position: relative; }
+        .result-box.fraud { background: linear-gradient(135deg, #FEF2F2 0%, #FFF 100%); border: 1px solid #FECACA; color: #991B1B; }
+        .result-box.safe { background: linear-gradient(135deg, #ECFDF5 0%, #FFF 100%); border: 1px solid #A7F3D0; color: #065F46; }
+
+        .shap-bar { display: flex; justify-content: space-between; margin-top: 10px; font-size: 14px; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 6px 0; }
+
+        /* --- Table --- */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 14px; border-bottom: 1px solid #F3F4F6; }
+        th { color: var(--text-gray); font-size: 12px; text-transform: uppercase; }
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; }
+        .badge-crit { background: #FEE2E2; color: #B91C1C; }
+        .badge-low { background: #E0E7FF; color: #3730A3; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">
+            <i class="fas fa-shield-alt"></i> Forte AI
+        </div>
+        <div class="nav-item active" onclick="switchTab('scanner', this)">
+            <i class="fas fa-search"></i> Сканер
+        </div>
+        <div class="nav-item" onclick="switchTab('batch', this)">
+            <i class="fas fa-layer-group"></i> Пакетная проверка
+        </div>
+        <div class="nav-item" onclick="switchTab('admin', this)">
+            <i class="fas fa-chart-pie"></i> Дашборд
+        </div>
+
+        <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid #eee;">
+            <div style="font-size: 11px; color: #999; text-transform: uppercase; font-weight: bold;">System Status</div>
+            <div style="font-size: 13px; color: #10B981; margin-top: 5px; display: flex; align-items: center; gap: 6px;">
+                <span style="width: 8px; height: 8px; background: #10B981; border-radius: 50%;"></span> Online
+            </div>
+            <div style="font-size: 11px; color: #ccc; margin-top: 5px;">Build: v2.4 (team: keeyman)</div>
+        </div>
+    </div>
+
+    <div class="main">
+
+        <div id="scanner" class="content-section active">
+            <div class="header">
+                <h2>Анализ транзакции</h2>
+                <p>Ручная проверка операций с ML-интерпретацией.</p>
+            </div>
+
+            <div style="display: flex; gap: 30px; align-items: flex-start;">
+                <div class="card" style="flex: 1;">
+                    <div style="background: #FFF5F7; padding: 15px; border-radius: 8px; margin-bottom: 25px; border: 1px dashed var(--primary);">
+                        <div style="display:flex; justify-content:space-between; font-weight:600; font-size:14px; margin-bottom:10px;">
+                            <span style="color:var(--primary);"><i class="fas fa-sliders-h"></i> Порог (Threshold)</span>
+                            <span id="threshVal">0.5</span>
+                        </div>
+                        <input type="range" id="threshold" min="0.1" max="0.9" step="0.1" value="0.5" style="width:100%; accent-color: var(--primary);" oninput="document.getElementById('threshVal').innerText = this.value">
+                    </div>
+
+                    <div class="form-grid">
+                        <div>
+                            <label style="font-size:13px; font-weight:600; margin-left:2px;">Сумма (KZT)</label>
+                            <input type="number" id="amount" value="150000">
+                        </div>
+                        <div>
+                            <label style="font-size:13px; font-weight:600; margin-left:2px;">Мерчант</label>
+                            <select id="merchant">
+                                <option value="P2P">P2P Перевод</option>
+                                <option value="Grocery">Супермаркет</option>
+                                <option value="Electronics">Электроника</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:13px; font-weight:600; margin-left:2px;">Устройство</label>
+                            <select id="device_type">
+                                <option value="old">Привычное</option>
+                                <option value="new">Новое устройство</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:13px; font-weight:600; margin-left:2px;">Время</label>
+                            <select id="time_day">
+                                <option value="day">День</option>
+                                <option value="night">Ночь</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn" onclick="checkFraud()" style="margin-top: 25px;">
+                        <i class="fas fa-shield-virus"></i> Проверить транзакцию
+                    </button>
+                </div>
+
+                <div id="result" class="result-box" style="flex: 1; margin-top: 0; min-height: 380px;">
+                    <div style="text-align: center; margin-top: 50px; color: #ccc;">
+                        <i class="fas fa-search" style="font-size: 40px; margin-bottom: 10px;"></i>
+                        <br>Ожидание данных...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="batch" class="content-section">
+            <div class="header">
+                <h2>Пакетная проверка</h2>
+                <p>Эмуляция потоковой обработки (Data Pipeline Simulation).</p>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; gap: 30px; align-items: center; justify-content: center; padding: 40px; border: 2px dashed #E5E7EB; border-radius: 12px; background: #FAFAFA;">
+                    <div style="text-align: center;">
+                        <button class="btn" onclick="simulateBatch()" style="width: auto; background-color: #111827; padding: 15px 30px;">
+                            <i class="fas fa-random"></i> Эмуляция потока данных
+                        </button>
+                        <div style="font-size: 13px; color: #666; margin-top: 10px;">Забор данных из исторического слоя (Data Lake)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="batchResults" style="display:none;">
+                <div class="card" style="padding:0; overflow:hidden;">
+                    <table id="batchTable">
+                        <thead style="background: #F9FAFB;">
+                            <tr>
+                                <th>Transaction ID</th>
+                                <th>Amount</th>
+                                <th>Category</th>
+                                <th>Fraud Prob</th>
+                                <th>Risk Level</th>
+                                <th>Verdict</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin" class="content-section">
+            <div class="header">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h2>Центр мониторинга</h2>
+                        <p>Аналитика инцидентов и управление MLOps.</p>
+                    </div>
+                    <button class="btn btn-outline" style="width:auto; font-size: 14px;" onclick="triggerRetrain()">
+                        <i class="fas fa-sync-alt"></i> Запустить дообучение (Retrain)
+                    </button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Проверено сегодня</div>
+                    <div class="stat-val" id="statTotal">0</div>
+                </div>
+                <div class="stat-card" style="border-left-color: #EF4444;">
+                    <div class="stat-label">Атак заблокировано</div>
+                    <div class="stat-val" id="statFraud">0</div>
+                </div>
+                <div class="stat-card" style="border-left-color: #10B981;">
+                    <div class="stat-label">Предотвращенный ущерб</div>
+                    <div class="stat-val" id="statSaved">0 ₸</div>
+                </div>
+                <div class="stat-card" style="border-left-color: #F59E0B;">
+                    <div class="stat-label">Уровень угроз</div>
+                    <div class="stat-val" id="statRate">0%</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+                <div class="card">
+                    <h3 style="margin-top:0; font-size: 16px;">Динамика подозрительных операций (Live)</h3>
+                    <div style="height: 250px;">
+                        <canvas id="fraudChart"></canvas>
+                    </div>
+                </div>
+                <div class="card" style="background: #1F2937; color: white;">
+                    <h3 style="margin-top:0; font-size: 16px; color: #9CA3AF;">System Logs</h3>
+                    <div style="font-family: monospace; font-size: 12px; color: #D1D5DB; line-height: 1.6; opacity: 0.8;">
+                        > System initialized... OK<br>
+                        > Model "CatBoost_v1" loaded... OK<br>
+                        > Connecting to Data Lake... OK<br>
+                        > SHAP explainer ready... OK<br>
+                        > Monitoring active on port 8000<br>
+                        <span style="color: #10B981;">> All systems operational</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            if(tabId === 'admin') loadStats();
+        }
+
+        async function checkFraud() {
+            const resultBox = document.getElementById('result');
+            // Loader
+            resultBox.innerHTML = '<div style="text-align:center; margin-top:50px;"><i class="fas fa-circle-notch fa-spin" style="font-size:30px; color:var(--primary);"></i><br><br>ML-анализ в реальном времени...</div>';
+            resultBox.className = 'result-box';
+            resultBox.style.display = 'block';
+
+            const payload = {
+                "amount_kzt": parseFloat(document.getElementById('amount').value),
+                "transaction_hour": document.getElementById('time_day').value === 'night' ? 3 : 14,
+                "is_night": document.getElementById('time_day').value === 'night' ? 1 : 0,
+                "device_os": "Android",
+                "is_new_device": document.getElementById('device_type').value === 'new' ? 1 : 0,
+                "time_on_screen_sec": 45,
+                "merchant_category": document.getElementById('merchant').value
+            };
+
+            const threshold = document.getElementById('threshold').value;
+
+            try {
+                await new Promise(r => setTimeout(r, 600));
+
+                const res = await fetch(`/predict?threshold=${threshold}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                const icon = data.is_fraud ? '<i class="fas fa-ban"></i>' : '<i class="fas fa-check-circle"></i>';
+                const status = data.is_fraud ? 'БЛОКИРОВКА' : 'РАЗРЕШЕНО';
+
+                resultBox.className = data.is_fraud ? 'result-box fraud' : 'result-box safe';
+
+                let humanReason = "Операция выглядит типичной для данного клиента.";
+                if(data.is_fraud) {
+                    const topFactor = Object.keys(data.explanations)[0];
+                    if(topFactor === 'amount_kzt') humanReason = "Аномально высокая сумма перевода.";
+                    if(topFactor === 'is_new_device') humanReason = "Попытка входа с нового/неизвестного устройства.";
+                    if(topFactor === 'is_night') humanReason = "Нетипичная активность в ночное время.";
+                }
+
+                let html = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <h2 style="margin:0; font-size:24px;">${icon} ${status}</h2>
+                        <div class="badge ${data.is_fraud ? 'badge-crit' : 'badge-low'}" style="font-size:14px;">${data.risk_level} RISK</div>
+                    </div>
+
+                    <div style="margin-bottom: 20px; font-size: 15px;">
+                        ${humanReason}
+                    </div>
+
+                    <div style="background:rgba(255,255,255,0.6); padding:15px; border-radius:8px;">
+                        <div style="font-size:12px; font-weight:bold; color:#666; margin-bottom:10px; text-transform:uppercase;">Детализация факторов (SHAP Values)</div>
+                        ${Object.entries(data.explanations).map(([k, v]) => `
+                            <div class="shap-bar">
+                                <span>${mapName(k)}</span>
+                                <span style="font-weight:bold; font-family:monospace;">${v}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+
+if(data.is_fraud) {
+    const downloadUrl = `/download_report?txn_id=${data.transaction_id}&amount=${payload.amount_kzt}&merchant=${payload.merchant_category}&risk=${data.risk_level}`;
+
+    html += `
+        <button class="btn btn-outline" style="margin-top:20px; padding:10px;" onclick="window.open('${downloadUrl}', '_blank')">
+            <i class="fas fa-file-pdf"></i> Скачать протокол инцидента (PDF)
+        </button>
+    `;
+}
+
+                resultBox.innerHTML = html;
+
+            } catch (e) { alert("Ошибка API"); }
+        }
+
+            function mapName(key) {
+            const names = {
+                'amount_kzt': 'Сумма транзакции',
+                'is_new_device': 'Новое устройство',
+                'is_night': 'Ночное время',
+                'merchant_category': 'Категория мерчанта',
+                'time_on_screen_sec': 'Время на экране',
+                'transaction_hour': 'Час операции',    // <-- ДОБАВИЛ
+                'device_os': 'ОС устройства'           // <-- ДОБАВИЛ
+            };
+            // Если перевода нет, вернет оригинал, но теперь перевод есть
+            return names[key] || key;
+        }
+
+        async function simulateBatch() {
+            const tbody = document.querySelector('#batchTable tbody');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:30px;"><i class="fas fa-sync fa-spin"></i> Обработка потока...</td></tr>';
+            document.getElementById('batchResults').style.display = 'block';
+
+            try {
+                await new Promise(r => setTimeout(r, 800)); // Demo delay
+                const res = await fetch('/simulate_batch');
+                const data = await res.json();
+
+                tbody.innerHTML = '';
+                data.forEach((row, i) => {
+                    const isFraud = row.is_fraud_predicted;
+                    tbody.innerHTML += `
+                        <tr style="background-color: ${isFraud ? '#FEF2F2' : 'transparent'}">
+                            <td style="font-family:monospace; color:#666;">TXN-${Date.now().toString().slice(-4)}-${i}</td>
+                            <td style="font-weight:bold;">${row.amount_kzt.toLocaleString()} ₸</td>
+                            <td>${row.merchant_category}</td>
+                            <td>${(row.fraud_probability*100).toFixed(1)}%</td>
+                            <td><span class="badge ${isFraud ? 'badge-crit' : 'badge-low'}">${row.risk_level}</span></td>
+                            <td style="color: ${isFraud ? '#B91C1C' : '#047857'}; font-weight:bold;">
+                                ${isFraud ? '<i class="fas fa-ban"></i> BLOCK' : '<i class="fas fa-check"></i> OK'}
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) { alert("Ошибка симуляции"); }
+        }
+
+        let myChart = null;
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/admin/stats');
+                const data = await res.json();
+                if(data.error) return;
+
+                document.getElementById('statTotal').innerText = data.total_transactions;
+                document.getElementById('statFraud').innerText = data.fraud_detected_count;
+                document.getElementById('statRate').innerText = data.fraud_rate_today + "%";
+                document.getElementById('statSaved').innerText = new Intl.NumberFormat('ru-RU', {
+                    style: 'currency', currency: 'KZT', maximumSignificantDigits: 1
+                }).format(data.money_saved_kzt);
+
+                // Render Chart
+                const ctx = document.getElementById('fraudChart').getContext('2d');
+                if(myChart) myChart.destroy(); // Clear old chart
+
+                myChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['10:00', '11:00', '12:00', '13:00', '14:00', 'Now'],
+                        datasets: [{
+                            label: 'Подозрительная активность',
+                            data: [2, 5, 3, 8, 4, data.fraud_detected_count], // Fake historical + Real current
+                            borderColor: '#9D1F46',
+                            backgroundColor: 'rgba(157, 31, 70, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+
+            } catch (e) { console.log(e); }
+        }
+
+        async function triggerRetrain() {
+            if(confirm("Инициировать переобучение модели (Pipeline #482)?")) {
+                const res = await fetch('/admin/retrain', { method: 'POST' });
+                const data = await res.json();
+                alert("SUCCESS: " + data.message);
+            }
+        }
+    </script>
+</body>
+</html>

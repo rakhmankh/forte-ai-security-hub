@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  anti-fraud-api:
+    build: .
+    container_name: forte_ai_engine
+    ports:
+      - "8000:8000"
+    volumes:
+
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./static:/app/static
+    restart: always
+    environment:
+      - LOG_LEVEL=info
+
